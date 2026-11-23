@@ -1,0 +1,26 @@
+global:
+  rediscoverInterval: 1h
+  logLevel: info
+
+connection:
+  queueManager: "QM1"
+  clientConnection: true
+  connName: "127.0.0.1(1415)"
+  channel: "DEV.ADMIN.SVRCONN"
+  user: "admin"
+  replyQueue: "GRFCL.PROMETHEUS.REPLY.QUEUE"
+  replyQueue2: "GRFCL.PROMETHEUS.UNUSED.QUEUE"
+  durableSubPrefix: "GRFCL.PROMETHEUS.SUB"
+  waitInterval: 60
+
+objects:
+  queues: ["*"]
+  channels: ["*"]
+  topics: ["#"]
+  subscriptions: ["!*"]
+
+prometheus:
+  host: "127.0.0.1"
+  port: "9457"
+  metricsPath: "/metrics"
+  keepRunning: true

@@ -1,0 +1,104 @@
+name: mq-prometheus
+
+x-queue-manager: &queue-manager
+  image: mq-local-monitoring:latest
+  pull_policy: never
+  restart: unless-stopped
+  stop_grace_period: 90s
+  healthcheck:
+    test: ["CMD-SHELL", "dspmq -m \"$$MQ_QMGR_NAME\" | grep -Fq 'STATUS(Running)'"]
+    interval: 5s
+    timeout: 5s
+    retries: 12
+
+x-mq-environment: &mq-environment
+  LICENSE: accept
+  MQ_APP_PASSWORD: ${MQ_APP_PASSWORD:-passw0rd}
+  MQ_ENABLE_METRICS: "true"
+  MQ_ENABLE_ADMIN_WEB: "true"
+
+x-exporter-build: &exporter-build
+  context: ..
+  dockerfile: docker_build/Dockerfile
+
+services:
+  builder:
+    build:
+      <<: *exporter-build
+      target: builder
+    command: ["sleep", "infinity"]
+
+  qm1:
+    <<: *queue-manager
+    environment:
+      <<: *mq-environment
+      MQ_QMGR_NAME: QM1
+    ports: ["1415:1414", "9444:9443", "9450:9449"]
+    volumes:
+      - ./data/QM1:/mnt/mqm:Z
+      - ./mq-monitoring/monitoring-auth.mqsc:/etc/mqm/monitoring-auth.mqsc:ro,z
+      - ./mq-monitoring/monitoring-tuning.ini:/etc/mqm/monitoring-tuning.ini:ro,z
+
+  qm2:
+    <<: *queue-manager
+    environment:
+      <<: *mq-environment
+      MQ_QMGR_NAME: QM2
+    ports: ["1416:1414", "9445:9443", "9451:9449"]
+    volumes:
+      - ./data/QM2:/mnt/mqm:Z
+      - ./mq-monitoring/monitoring-auth.mqsc:/etc/mqm/monitoring-auth.mqsc:ro,z
+      - ./mq-monitoring/monitoring-tuning.ini:/etc/mqm/monitoring-tuning.ini:ro,z
+
+  prometheus:
+    image: prometheus-local-monitoring:latest
+    pull_policy: never
+    restart: unless-stopped
+    ports: ["127.0.0.1:9091:9090"]
+    volumes:
+      - ./prometheus-data:/prometheus:Z
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,Z
+
+  grafana:
+    image: grafana/grafana:latest
+    pull_policy: never
+    restart: unless-stopped
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-passw0rd}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana-data:/var/lib/grafana:Z
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro,Z
+      - ./grafana/go-dashboards:/var/lib/grafana/dashboards:ro,Z
+
+  mq_prometheus_ent:
+    build:
+      <<: *exporter-build
+      target: enterprise
+    restart: unless-stopped
+    depends_on:
+      qm1:
+        condition: service_healthy
+    environment:
+      IBMMQ_CONNECTION_PASSWORD: ${MQ_APP_PASSWORD:-passw0rd}
+    command: ["-f", "/etc/mq-exporter/exporter.yaml"]
+    volumes:
+      - ./exporters/qm1.yaml:/etc/mq-exporter/exporter.yaml:ro,Z
+    ports: ["127.0.0.1:9457:9157"]
+
+  mq_prometheus:
+    build:
+      <<: *exporter-build
+      target: standard
+    restart: unless-stopped
+    depends_on:
+      qm2:
+        condition: service_healthy
+    environment:
+      IBMMQ_CONNECTION_PASSWORD: ${MQ_APP_PASSWORD:-passw0rd}
+    command: ["-f", "/etc/mq-exporter/exporter.yaml"]
+    volumes:
+      - ./exporters/qm2.yaml:/etc/mq-exporter/exporter.yaml:ro,Z
+    ports: ["127.0.0.1:9458:9157"]

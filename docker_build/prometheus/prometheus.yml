@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 120s
+  # Default timeout for both scrape jobs.
+  scrape_timeout: 90s
+  evaluation_interval: 90s
+
+scrape_configs:
+  - job_name: mq_prometheus_ent
+    static_configs:
+      - targets: ["mq_prometheus_ent:9157"]
+  - job_name: mq_prometheus
+    static_configs:
+      - targets: ["mq_prometheus:9157"]

@@ -1,0 +1,20 @@
+
+# This is the collector-specific piece of the configuration
+prometheus:
+  port: 9157
+# We can constrain the http listener to a single adapter via the 'host' config. Default is
+# to bind to all local addresses
+# host: 1.2.3.4
+  metricsPath: "/metrics"
+  namespace: ibmmq
+# We can also set keystore information if the Prometheus instance uses TLS to contact the collector
+# httpsKeyFile:  "server.key"
+# httpsCertFile: "server.crt"
+# Keep serving snapshot health and retry MQ while the queue manager is unavailable.
+  keepRunning: true
+# Background MQ collection cadence, independent of HTTP requests.
+  collectionInterval: 1m
+# How often to check the status and to attempt to reconnect if there's been a failure  
+  reconnectInterval: 5s
+# Set this to false to revert to original behaviour which did not distinguish between Counters/Gauges
+# overrideCType: true

@@ -1,0 +1,1 @@
+docker exec -it mq-prometheus-qm1-1 /bin/bash

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Local IBM MQ workload control and live telemetry">
+  <title>MQ Traffic Console</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="brand"><span class="mark" aria-hidden="true">◈</span> MQ Traffic Console</div><span id="link-state" class="link-state">Connecting</span></header>
+<main>
+  <div class="overview"><div><h1>Traffic overview</h1><p>IBM MQ test workload across QM1 and QM2</p></div><span class="scope">1,000 local test queues</span></div>
+  <div class="layout">
+    <section class="panel controls" aria-labelledby="control-title">
+      <h2 id="control-title">Workload controls</h2>
+      <form id="workload" autocomplete="off">
+        <label>Queue managers<select name="target"><option value="both">QM1 and QM2</option><option value="0">QM1 only</option><option value="1">QM2 only</option></select></label>
+        <label>Operation<select name="mode"><option value="roundtrip">Put and get</option><option value="put">Put only</option><option value="get">Get by run ID</option></select></label>
+        <label id="tag-field" hidden>Source run ID<input name="tag" maxlength="48" spellcheck="false" placeholder="Paste a run ID"></label>
+        <div class="pair">
+          <label>Elapsed time (s)<input name="seconds" type="number" min="1" max="3600" value="60" required></label>
+          <label>Load<select name="profile"><option value="light">Light</option><option value="medium">Medium</option><option value="heavy">Heavy</option><option value="extreme">Extreme</option></select></label>
+        </div>
+        <label id="disk-load-field" hidden><span><input name="diskLoad" type="checkbox" value="1" disabled> Include persistent disk load</span></label>
+        <details id="connection-0"><summary>QM1 connection <span>127.0.0.1</span></summary>
+          <div class="pair"><label>Port<input name="port0" type="number" min="1" max="65535" value="1415"></label><label>User<input name="user0" value="app" maxlength="1024"></label></div>
+          <label>Channel<input name="channel0" value="DEV.APP.SVRCONN" maxlength="20"></label>
+        </details>
+        <details id="connection-1"><summary>QM2 connection <span>127.0.0.1</span></summary>
+          <div class="pair"><label>Port<input name="port1" type="number" min="1" max="65535" value="1416"></label><label>User<input name="user1" value="app" maxlength="1024"></label></div>
+          <label>Channel<input name="channel1" value="DEV.APP.SVRCONN" maxlength="20"></label>
+        </details>
+        <div class="actions"><button id="start" type="submit">Start run</button><button id="stop" type="button" disabled>Stop</button></div>
+        <p id="feedback" role="status" hidden></p>
+      </form>
+      <div id="run-id" hidden><span>Run ID</span><code id="tag"></code><button type="button" id="copy">Copy</button></div>
+    </section>
+
+    <div class="telemetry">
+      <section class="stats" aria-label="Run totals">
+        <article class="panel stat"><span class="label put">Messages put</span><strong id="total-puts">0</strong></article>
+        <article class="panel stat"><span class="label get">Messages got</span><strong id="total-gets">0</strong></article>
+        <article class="panel stat"><span class="label">Empty reads</span><strong id="total-empty">0</strong></article>
+        <article class="panel stat"><span class="label error">Errors</span><strong id="total-errors">0</strong></article>
+      </section>
+
+      <section class="panel chart-panel" aria-labelledby="chart-title">
+        <div class="section-head"><div><h2 id="chart-title">Message throughput</h2><p>Messages per second · last 120 seconds</p></div><div class="legend"><span class="put">● Put</span><span class="get">● Get</span></div></div>
+        <canvas id="chart" role="img" aria-label="Message put and get rates over the last two minutes"></canvas>
+        <div class="progress-line"><span id="progress-kind">Elapsed time</span><strong id="progress-label">0:00:00 / 0:00:00</strong></div>
+        <progress id="progress" value="0" max="1"></progress>
+        <p id="tuning-status" hidden></p>
+      </section>
+
+      <section class="managers" aria-label="Queue managers">
+        <article class="panel manager" id="manager-0"></article>
+        <article class="panel manager" id="manager-1"></article>
+      </section>
+
+      <section class="panel queue-panel" aria-labelledby="queue-title">
+        <div class="section-head"><div><h2 id="queue-title">Queue activity</h2><p id="queue-count">1,000 test queues</p></div><div class="filters"><input type="search" id="search" aria-label="Find queue" placeholder="Find a queue"><select id="filter" aria-label="Filter queue manager"><option value="both">Both managers</option><option>QM1</option><option>QM2</option></select></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Queue</th><th>Manager</th><th>Put</th><th>Get</th><th>Empty</th><th>Errors</th></tr></thead><tbody id="queue-rows"></tbody></table></div>
+        <div class="pager"><button id="prev" type="button">Previous</button><span id="page"></span><button id="next" type="button">Next</button></div>
+      </section>
+    </div>
+  </div>
+</main>
+</body>
+</html>

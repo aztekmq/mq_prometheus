@@ -1,0 +1,6 @@
+/data/
+/grafana-data/
+/prometheus-data/
+/.env
+
+/images/
